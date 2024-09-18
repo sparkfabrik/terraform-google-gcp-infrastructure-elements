@@ -1,4 +1,4 @@
-# Terraform Module Template
+# Terraform Gcp Infrastructure Elements
 
 This project is intended to gather common elements for GCP infrastructures in order to centralize security configurations and best practices.
 
