@@ -71,7 +71,7 @@ variable "fpm" {
   description = "FPM exclusion"
   type        = string
   default     = <<EOT
-resource.type="container"
+resource.type="container" AND
 "fpm" AND
 ( 
   ( trace:* sample(trace, 0.5) ) OR
