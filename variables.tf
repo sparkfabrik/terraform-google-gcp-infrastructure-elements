@@ -61,7 +61,7 @@ variable "fluentbit_gke" {
   description = "Fluentbit-gke exclusion for failed to parse time"
   type        = string
   default     = <<EOT
-  resource.labels.container_name="fluentbit-gke" AND 
+resource.labels.container_name="fluentbit-gke" AND 
 jsonPayload.message=~"Failed to parse time"
 EOT
 }
@@ -71,11 +71,12 @@ variable "fpm" {
   description = "FPM exclusion"
   type        = string
   default     = <<EOT
-  resource.type="container"
-  "fpm"
-
-  ( ( trace:* sample(trace, 0.5) ) OR
-    ( NOT trace:* operation.id:* sample(operation.id, 0.5) ) OR
-    ( NOT trace:* NOT operation.id:* sample(insertId, 0.5) ) )
-  EOT
+resource.type="container"
+"fpm" AND
+( 
+  ( trace:* sample(trace, 0.5) ) OR
+  ( NOT trace:* operation.id:* sample(operation.id, 0.5) ) OR
+  ( NOT trace:* NOT operation.id:* sample(insertId, 0.5) ) 
+)
+EOT
 }

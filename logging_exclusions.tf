@@ -36,7 +36,7 @@ resource "google_logging_project_exclusion" "gke_metadata_server_exclusion_sync_
 }
 
 resource "google_logging_project_exclusion" "fluentbit_gke_parse_time" {
-  count = lookup(var.enable_exclusions, "fluentbit-gke", true) ? 1 : 0
+  count = lookup(var.enable_exclusions, "fluentbit_gke", true) ? 1 : 0
 
   project     = var.project_id
   name        = "fluentbit-gke-parse-time"
