@@ -5,7 +5,7 @@ locals {
 
   # Combine all filters into one string
   probe_filter_expr = join(" OR ", concat(local.json_payload_filters, local.text_payload_filters))
-  probe_filter      = "resource.type=\"k8s_container\"\n(${local.probe_filter_expr})"
+  probe_filter      = "resource.type=\"k8s_container\" AND (${local.probe_filter_expr})"
 }
 
 resource "google_logging_project_exclusion" "probe_exclusion" {
