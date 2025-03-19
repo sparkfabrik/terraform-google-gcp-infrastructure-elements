@@ -1,4 +1,1 @@
-resource "google_storage_bucket" "example" {
-  name     = var.name
-  location = "EU"
-}
+# Each type of resource is defined in a separate file
