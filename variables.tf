@@ -66,7 +66,6 @@ jsonPayload.message=~"Failed to parse time"
 EOT
 }
 
-
 variable "fpm" {
   description = "FPM exclusion"
   type        = string
@@ -79,4 +78,13 @@ resource.type="container" AND
   ( NOT trace:* NOT operation.id:* sample(insertId, 0.5) ) 
 )
 EOT
+}
+
+variable "custom_exclusions" {
+  description = "Map of custom exclusion filters with their descriptions"
+  type = map(object({
+    filter      = string
+    description = string
+  }))
+  default = {}
 }
