@@ -22,6 +22,7 @@ output "fluentbit_gke_exclusion_id" {
   description = "The ID of the Fluentbit GKE exclusion resource"
   value       = lookup(var.enable_exclusions, "fluentbit_gke", true) ? google_logging_project_exclusion.fluentbit_gke_parse_time[0].id : null
 }
+
 output "fpm_exclusion_id" {
   description = "The ID of the FPM exclusion resource"
   value       = lookup(var.enable_exclusions, "fpm", true) ? google_logging_project_exclusion.fpm[0].id : null
