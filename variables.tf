@@ -15,7 +15,6 @@ variable "enable_ssl_policy" {
 ###########################
 # Logging Exclusions 
 ###########################
-
 variable "enable_exclusions" {
   description = "Map of boolean flags to enable/disable individual exclusions"
   type        = map(bool)
