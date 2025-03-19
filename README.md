@@ -5,6 +5,7 @@ This project is intended to gather common elements for GCP infrastructures in or
 We suggest following Terraform best practices as described in https://www.terraform-best-practices.com/code-structure.
 
 ## SSL default policy
+
 Creates a default policy for SSL that disables unsecure ciphers and tls<1.2
 
 ## Google Cloud Logging Exclusions
