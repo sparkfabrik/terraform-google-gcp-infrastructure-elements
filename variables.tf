@@ -12,12 +12,6 @@ variable "enable_ssl_policy" {
   default     = true
 }
 
-variable "ssl_policy_description" {
-  description = "Description for the SSL policy"
-  type        = string
-  default     = "Modern SSL policy with minimum TLS version 1.2"
-}
-
 ###########################
 # Logging Exclusions 
 ###########################

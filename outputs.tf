@@ -32,3 +32,8 @@ output "ssl_policy_modern_tls_1_2_id" {
   description = "The ID of the SSL policy resource"
   value       = var.enable_ssl_policy ? google_compute_ssl_policy.modern_tls_1_2[0].id : null
 }
+
+output "ssl_policy_restricted_tls_1_2_id" {
+  description = "The ID of the SSL policy resource"
+  value       = var.enable_ssl_policy ? google_compute_ssl_policy.restricted_tls_1_2[0].id : null
+}
