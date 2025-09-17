@@ -20,15 +20,19 @@ variable "kyverno_firewall_rule" {
     ports         = list(string)
   })
   default = {
-    enable        = true
+    enable        = false
     name          = "kyverno-admission-webhook"
     network       = ""
     description   = "Allow Kyverno admission webhook from control plane to nodes"
     direction     = "INGRESS"
     priority      = 1000
-    source_ranges = null
+    source_ranges = []
     protocol      = "tcp"
     ports         = ["9443"]
+  }
+  validation {
+    condition     = var.kyverno_firewall_rule.enable == false || (var.kyverno_firewall_rule.network != "" && length(var.kyverno_firewall_rule.source_ranges) > 0)
+    error_message = "When 'enable' is true, 'network' must be set and 'source_ranges' must contain at least one CIDR range."
   }
 }
 

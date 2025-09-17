@@ -35,6 +35,26 @@ module "logging_exclusions" {
 }
 ```
 
+Note: the Kyverno firewall rule is created only when `kyverno_firewall_rule.enable = true` and both `kyverno_firewall_rule.network` and `kyverno_firewall_rule.source_ranges` are provided. If any of these conditions is not met the rule will not be created. The module validates these fields and will fail with a clear error when `enable` is true but required fields are missing.
+
+Example (short):
+
+```hcl
+module "infrastructure_elements" {
+  source     = "./"
+  project_id = var.project
+
+  kyverno_firewall_rule = {
+    enable        = true
+    name          = "kyverno-admission-webhook"
+    network       = "projects/PROJECT/global/networks/example-vpc" # required
+    source_ranges = ["10.0.0.0/28"]                                 # required
+    protocol      = "tcp"
+    ports         = ["9443"]
+  }
+}
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Providers
 
@@ -60,7 +80,7 @@ module "logging_exclusions" {
 | <a name="input_fluentbit_gke"></a> [fluentbit\_gke](#input\_fluentbit\_gke) | Fluentbit-gke exclusion for failed to parse time | `string` | `"resource.labels.container_name=\"fluentbit-gke\" AND\njsonPayload.message=~\"Failed to parse time\"\n"` | no |
 | <a name="input_fpm"></a> [fpm](#input\_fpm) | FPM exclusion | `string` | `"resource.type=\"container\" AND\n\"fpm\" AND\n(\n  ( trace:* sample(trace, 0.5) ) OR\n  ( NOT trace:* operation.id:* sample(operation.id, 0.5) ) OR\n  ( NOT trace:* NOT operation.id:* sample(insertId, 0.5) )\n)\n"` | no |
 | <a name="input_gke_metadata_server_exclusion_sync_sandbox"></a> [gke\_metadata\_server\_exclusion\_sync\_sandbox](#input\_gke\_metadata\_server\_exclusion\_sync\_sandbox) | Filter for gke-metadata-server exclusion for failed to sync sandbox | `string` | `"resource.type=\"k8s_container\" AND\nseverity=INFO AND\nresource.labels.namespace_name=\"kube-system\" AND\nlabels.k8s-pod/k8s-app=\"gke-metadata-server\" AND\njsonPayload.message=~\"Unable to sync sandbox\"\n"` | no |
-| <a name="input_kyverno_firewall_rule"></a> [kyverno\_firewall\_rule](#input\_kyverno\_firewall\_rule) | Rule to configure the Kyverno admission webhook firewall rule | <pre>object({<br>    enable        = bool<br>    name          = string<br>    network       = string<br>    description   = string<br>    direction     = string<br>    priority      = number<br>    source_ranges = list(string)<br>    protocol      = string<br>    ports         = list(string)<br>  })</pre> | <pre>{<br>  "description": "Allow Kyverno admission webhook from control plane to nodes",<br>  "direction": "INGRESS",<br>  "enable": true,<br>  "name": "kyverno-admission-webhook",<br>  "network": "",<br>  "ports": [<br>    "9443"<br>  ],<br>  "priority": 1000,<br>  "protocol": "tcp",<br>  "source_ranges": null<br>}</pre> | no |
+| <a name="input_kyverno_firewall_rule"></a> [kyverno\_firewall\_rule](#input\_kyverno\_firewall\_rule) | Rule to configure the Kyverno admission webhook firewall rule | <pre>object({<br>    enable        = bool<br>    name          = string<br>    network       = string<br>    description   = string<br>    direction     = string<br>    priority      = number<br>    source_ranges = list(string)<br>    protocol      = string<br>    ports         = list(string)<br>  })</pre> | <pre>{<br>  "description": "Allow Kyverno admission webhook from control plane to nodes",<br>  "direction": "INGRESS",<br>  "enable": false,<br>  "name": "kyverno-admission-webhook",<br>  "network": "",<br>  "ports": [<br>    "9443"<br>  ],<br>  "priority": 1000,<br>  "protocol": "tcp",<br>  "source_ranges": []<br>}</pre> | no |
 | <a name="input_probe_user_agents"></a> [probe\_user\_agents](#input\_probe\_user\_agents) | List of probe user agents to exclude from logs | `list(string)` | <pre>[<br>  "kube-probe",<br>  "GoogleHC"<br>]</pre> | no |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | The Google Cloud project ID where logging exclusions will be created | `string` | n/a | yes |
 | <a name="input_ssl_modern_policy_description"></a> [ssl\_modern\_policy\_description](#input\_ssl\_modern\_policy\_description) | Description for the SSL policy | `string` | `"Modern SSL policy with minimum TLS version 1.2"` | no |

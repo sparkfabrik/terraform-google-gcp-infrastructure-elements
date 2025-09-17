@@ -178,7 +178,7 @@ module "infrastructure_elements" {
     description   = "Allow Kyverno admission webhook from control plane to nodes"
     direction     = "INGRESS"
     priority      = 1000
-    source_ranges = module.gke.cluster_ipv4_cidr
+    source_ranges = [module.gke.cluster_ipv4_cidr]
     protocol      = "tcp"
     ports         = ["9443"]
   }
