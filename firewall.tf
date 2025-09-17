@@ -1,0 +1,16 @@
+# This resource creates a firewall rule that allows traffic to the Kyverno admission webhook service, enabling the control plane to communicate with worker nodes over Kyverno’s TCP port, which by default is set to 9443.
+resource "google_compute_firewall" "kyverno_admission_webhook" {
+  count       = var.kyverno_firewall_rule.enable ? 1 : 0
+  name        = var.kyverno_firewall_rule.name
+  network     = var.kyverno_firewall_rule.network
+  description = var.kyverno_firewall_rule.description
+  direction   = var.kyverno_firewall_rule.direction
+  priority    = var.kyverno_firewall_rule.priority
+
+  source_ranges = var.kyverno_firewall_rule.source_ranges
+
+  allow {
+    protocol = var.kyverno_firewall_rule.protocol
+    ports    = var.kyverno_firewall_rule.ports
+  }
+}

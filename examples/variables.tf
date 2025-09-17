@@ -1,4 +1,10 @@
-variable "name" {
+variable "project_id" {
   type        = string
-  description = "Describe what this variable is used for."
+  description = "GCP project id to deploy the example into"
+}
+
+variable "region" {
+  type        = string
+  description = "GCP region for provider"
+  default     = "us-central1"
 }
