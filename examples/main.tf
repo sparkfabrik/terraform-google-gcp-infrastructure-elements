@@ -173,13 +173,7 @@ module "infrastructure_elements" {
   # Kyverno firewall example: override as needed
   kyverno_firewall_rule = {
     enable        = true
-    name          = "kyverno-admission-webhook"
     network       = module.vpc.network_self_link
-    description   = "Allow Kyverno admission webhook from control plane to nodes"
-    direction     = "INGRESS"
-    priority      = 1000
-    source_ranges = [module.gke.cluster_ipv4_cidr]
-    protocol      = "tcp"
-    ports         = ["9443"]
+    source_ranges = [module.gke.master_ipv4_cidr_block]
   }
 }

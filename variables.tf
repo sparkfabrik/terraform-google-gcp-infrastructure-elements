@@ -10,14 +10,14 @@ variable "kyverno_firewall_rule" {
   description = "Rule to configure the Kyverno admission webhook firewall rule"
   type = object({
     enable        = bool
-    name          = string
     network       = string
-    description   = string
-    direction     = string
-    priority      = number
     source_ranges = list(string)
-    protocol      = string
-    ports         = list(string)
+    name          = optional(string)
+    description   = optional(string)
+    direction     = optional(string)
+    priority      = optional(number)
+    protocol      = optional(string)
+    ports         = optional(list(string))
   })
   default = {
     enable        = false
