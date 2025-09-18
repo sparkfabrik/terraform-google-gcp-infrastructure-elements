@@ -4,6 +4,39 @@ variable "project_id" {
 }
 
 ###########################
+# Kyverno firewall rule
+###########################
+variable "kyverno_firewall_rule" {
+  description = "Rule to configure the Kyverno admission webhook firewall rule"
+  type = object({
+    enable        = bool
+    network       = string
+    source_ranges = list(string)
+    name          = optional(string)
+    description   = optional(string)
+    direction     = optional(string)
+    priority      = optional(number)
+    protocol      = optional(string)
+    ports         = optional(list(string))
+  })
+  default = {
+    enable        = false
+    name          = "kyverno-admission-webhook"
+    network       = ""
+    description   = "Allow Kyverno admission webhook from control plane to nodes"
+    direction     = "INGRESS"
+    priority      = 1000
+    source_ranges = []
+    protocol      = "tcp"
+    ports         = ["9443"]
+  }
+  validation {
+    condition     = var.kyverno_firewall_rule.enable == false || (var.kyverno_firewall_rule.network != "" && length(var.kyverno_firewall_rule.source_ranges) > 0)
+    error_message = "When 'enable' is true, 'network' must be set and 'source_ranges' must contain at least one CIDR range."
+  }
+}
+
+###########################
 # SSL default policy
 ###########################
 variable "enable_ssl_policy" {
@@ -19,7 +52,7 @@ variable "ssl_modern_policy_description" {
 }
 
 ###########################
-# Logging Exclusions 
+# Logging Exclusions
 ###########################
 variable "enable_exclusions" {
   description = "Map of boolean flags to enable/disable individual exclusions"
@@ -66,7 +99,7 @@ variable "fluentbit_gke" {
   description = "Fluentbit-gke exclusion for failed to parse time"
   type        = string
   default     = <<EOT
-resource.labels.container_name="fluentbit-gke" AND 
+resource.labels.container_name="fluentbit-gke" AND
 jsonPayload.message=~"Failed to parse time"
 EOT
 }
@@ -77,10 +110,10 @@ variable "fpm" {
   default     = <<EOT
 resource.type="container" AND
 "fpm" AND
-( 
+(
   ( trace:* sample(trace, 0.5) ) OR
   ( NOT trace:* operation.id:* sample(operation.id, 0.5) ) OR
-  ( NOT trace:* NOT operation.id:* sample(insertId, 0.5) ) 
+  ( NOT trace:* NOT operation.id:* sample(insertId, 0.5) )
 )
 EOT
 }
