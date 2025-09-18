@@ -48,7 +48,7 @@ module "infrastructure_elements" {
     enable        = true
     name          = "kyverno-admission-webhook"
     network       = "projects/PROJECT/global/networks/example-vpc" # required
-    source_ranges = ["10.0.0.0/28"]                                 # required
+    source_ranges = ["10.0.0.0/28"]                                # required
     protocol      = "tcp"
     ports         = ["9443"]
   }
