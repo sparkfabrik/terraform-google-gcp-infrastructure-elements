@@ -119,7 +119,7 @@ EOT
 }
 
 variable "custom_exclusions" {
-  description = "Map of custom exclusion filters with their descriptions. The map key is used as the GCP exclusion name."
+  description = "Map of custom exclusion filters with their descriptions. The map key is used as the GCP exclusion name. Each value must include `filter` and `description`, and may optionally set `enabled` (defaults to `true`), which maps to `disabled = !enabled` on the GCP resource."
   type = map(object({
     filter      = string
     description = string
