@@ -176,4 +176,44 @@ module "infrastructure_elements" {
     network       = module.vpc.network_self_link
     source_ranges = [module.gke.master_ipv4_cidr_block]
   }
+
+  # Structured Kubernetes log exclusions.
+  # Each entry generates a GCP log exclusion scoped to a namespace or GKE cluster.
+  # The resource persists in state when enabled = false — toggle without destroy/recreate.
+  k8s_log_exclusions = {
+    # Silence Typesense Raft recovery noise in stage (actively enabled)
+    "typesense-stage-log-filter" = {
+      scope                  = "namespace"
+      namespace              = "typesense-clusters-stage"
+      exclude_below_severity = "ERROR"
+      enabled                = true
+      description            = "Suppress Typesense INFO/WARNING logs in stage to prevent billing runaway"
+    }
+    # Production filter created but disabled — activate during incidents
+    "typesense-prod-log-filter" = {
+      scope                  = "namespace"
+      namespace              = "typesense-clusters-main"
+      exclude_below_severity = "ERROR"
+      enabled                = false
+      description            = "Suppress Typesense INFO/WARNING logs in production (disabled by default)"
+    }
+    # Example: cluster-scoped exclusion for a dedicated dev cluster
+    "dev-cluster-log-filter" = {
+      scope                  = "cluster"
+      cluster_name           = "dev-cluster"
+      exclude_below_severity = "WARNING"
+      enabled                = false
+      description            = "Silence DEBUG/INFO logs for all workloads on the dev cluster (disabled by default)"
+    }
+  }
+
+  # Custom log exclusions with arbitrary GCP filter strings.
+  # Add enabled = false to deactivate without destroying the resource.
+  custom_exclusions = {
+    "my-app-debug-exclusion" = {
+      filter      = "resource.type=\"k8s_container\" AND resource.labels.namespace_name=\"my-app\" AND severity<\"WARNING\""
+      description = "Suppress debug logs from my-app namespace"
+      enabled     = true
+    }
+  }
 }

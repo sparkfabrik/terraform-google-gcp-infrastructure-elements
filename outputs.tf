@@ -28,6 +28,11 @@ output "fpm_exclusion_id" {
   value       = lookup(var.enable_exclusions, "fpm", true) ? google_logging_project_exclusion.fpm[0].id : null
 }
 
+output "k8s_log_exclusions_ids" {
+  description = "Map of k8s log exclusion names to their GCP resource IDs"
+  value       = { for k, v in google_logging_project_exclusion.k8s_log_exclusions : k => v.id }
+}
+
 output "ssl_policy_modern_tls_1_2_id" {
   description = "The ID of the SSL policy resource"
   value       = var.enable_ssl_policy ? google_compute_ssl_policy.modern_tls_1_2[0].id : null
