@@ -27,4 +27,4 @@ The module currently handles log exclusions as flat, named resources with raw GC
 - Modified file: `ssl.tf` (remove misplaced `custom_exclusions` resource block)
 - Modified file: `outputs.tf` (new `k8s_log_exclusions_ids` map output)
 - Modified file: `examples/main.tf` (usage examples for both new and updated variables)
-- **BREAKING** (minor): `custom_exclusions` object shape changes — existing callers passing `custom_exclusions` must add `enabled = true` to each entry. Default is `{}` so projects not using it are unaffected.
+- **Backward-compatible**: `custom_exclusions` object shape gains `enabled = optional(bool, true)`. Existing callers require no changes — omitting the field defaults to `enabled = true`, preserving current behaviour. Projects not using `custom_exclusions` (default `{}`) are completely unaffected.
