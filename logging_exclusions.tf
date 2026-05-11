@@ -9,19 +9,20 @@ locals {
 
   # Generate GCP log filter expressions for k8s_log_exclusions entries.
   # Namespace scope targets a single Kubernetes namespace; cluster scope targets all namespaces in a GKE cluster.
-  # coalesce(..., "") guards against null interpolation when scope/namespace/cluster_name are inconsistent —
-  # the precondition on the resource will surface the intended error message before apply proceeds.
+  # trimspace(coalesce(..., "")) guards against null interpolation and trims whitespace-only values,
+  # keeping filter generation consistent with the trimspace() checks in the resource preconditions.
+  # Clauses are joined with AND to match established module style and avoid Cloud Logging filter ambiguity.
   k8s_log_exclusion_filters = {
     for k, v in var.k8s_log_exclusions : k => (
       v.scope == "namespace"
-      ? join("\n", [
+      ? join(" AND\n", [
         "resource.type=\"k8s_container\"",
-        "resource.labels.namespace_name=\"${coalesce(v.namespace, "")}\"",
+        "resource.labels.namespace_name=\"${trimspace(coalesce(v.namespace, ""))}\"",
         "severity<\"${v.exclude_below_severity}\"",
       ])
-      : join("\n", [
+      : join(" AND\n", [
         "resource.type=\"k8s_container\"",
-        "resource.labels.cluster_name=\"${coalesce(v.cluster_name, "")}\"",
+        "resource.labels.cluster_name=\"${trimspace(coalesce(v.cluster_name, ""))}\"",
         "severity<\"${v.exclude_below_severity}\"",
       ])
     )

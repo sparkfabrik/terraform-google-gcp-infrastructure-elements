@@ -175,4 +175,17 @@ variable "k8s_log_exclusions" {
     ])
     error_message = "Each k8s_log_exclusions entry's 'exclude_below_severity' must be one of: DEFAULT, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY."
   }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.k8s_log_exclusions : !contains([
+        "health-probe-exclusion",
+        "default-k8s-exclusion",
+        "gke-metadata-server-exclusion-sync-sandbox",
+        "fluentbit-gke-parse-time",
+        "fpm-exclusion",
+      ], k)
+    ])
+    error_message = "k8s_log_exclusions map keys must not use reserved names already managed by this module: health-probe-exclusion, default-k8s-exclusion, gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion."
+  }
 }
