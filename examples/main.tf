@@ -205,6 +205,25 @@ module "infrastructure_elements" {
       enabled                = false
       description            = "Silence DEBUG/INFO logs for all workloads on the dev cluster (disabled by default)"
     }
+    # Example: namespace + container_name selector — target a specific container
+    "typesense-stage-container-filter" = {
+      scope                  = "namespace"
+      namespace              = "typesense-clusters-stage"
+      container_name         = "typesense"
+      exclude_below_severity = "ERROR"
+      enabled                = true
+      description            = "Suppress INFO/WARNING logs from the typesense container only in stage"
+    }
+    # Example: namespace + pod label selector — target pods by Kubernetes label
+    "typesense-stage-pod-label-filter" = {
+      scope                  = "namespace"
+      namespace              = "typesense-clusters-stage"
+      pod_label_key          = "app.kubernetes.io/name"
+      pod_label_value        = "typesense"
+      exclude_below_severity = "ERROR"
+      enabled                = true
+      description            = "Suppress INFO/WARNING logs from pods labelled app.kubernetes.io/name=typesense in stage"
+    }
   }
 
   # Custom log exclusions with arbitrary GCP filter strings.
