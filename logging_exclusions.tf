@@ -14,11 +14,15 @@ locals {
   # Clauses are joined with AND to match established module style and avoid Cloud Logging filter ambiguity.
   k8s_log_exclusion_filters = {
     for k, v in var.k8s_log_exclusions : k => join(" AND\n", concat(
-      # Base: resource type + scope clause
-      ["resource.type=\"k8s_container\""],
+      # Base: resource type + cluster (always present)
+      [
+        "resource.type=\"k8s_container\"",
+        "resource.labels.cluster_name=\"${trimspace(v.cluster_name)}\"",
+      ],
+      # Namespace clause (only for namespace scope)
       v.scope == "namespace"
       ? ["resource.labels.namespace_name=\"${trimspace(coalesce(v.namespace, ""))}\""]
-      : ["resource.labels.cluster_name=\"${trimspace(coalesce(v.cluster_name, ""))}\""],
+      : [],
       # Optional: container name selector
       v.container_name != null && trimspace(v.container_name) != ""
       ? ["resource.labels.container_name=\"${trimspace(v.container_name)}\""]
@@ -92,13 +96,18 @@ resource "google_logging_project_exclusion" "k8s_log_exclusions" {
 
   lifecycle {
     precondition {
+      condition     = trimspace(each.value.cluster_name) != ""
+      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'cluster_name' must be a non-empty string."
+    }
+
+    precondition {
       condition     = !(each.value.scope == "namespace" && (each.value.namespace == null || trimspace(each.value.namespace) == ""))
       error_message = "k8s_log_exclusions[\"${each.key}\"]: 'namespace' must be set to a non-empty string when scope is \"namespace\"."
     }
 
     precondition {
-      condition     = !(each.value.scope == "cluster" && (each.value.cluster_name == null || trimspace(each.value.cluster_name) == ""))
-      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'cluster_name' must be set to a non-empty string when scope is \"cluster\"."
+      condition     = !(each.value.scope == "cluster" && each.value.namespace != null)
+      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'namespace' must not be set when scope is \"cluster\"."
     }
 
     precondition {
