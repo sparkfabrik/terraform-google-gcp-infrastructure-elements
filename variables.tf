@@ -162,8 +162,9 @@ variable "k8s_log_exclusions" {
     Fields:
       scope                  - "namespace" to target a single k8s namespace, "cluster" to target all namespaces in a GKE cluster.
                                WARNING: "cluster" scope silences logs for all workloads in the cluster.
+      cluster_name           - Required. The GKE cluster name to scope the exclusion to.
       namespace              - Required when scope = "namespace". The Kubernetes namespace to filter.
-      cluster_name           - Required when scope = "cluster". The GKE cluster name to filter.
+                               Must NOT be set when scope = "cluster".
       container_name         - Optional. Narrow the exclusion to a specific container name
                                (appends resource.labels.container_name="<value>" to the filter).
       pod_label_key          - Optional. Kubernetes pod label key to filter on (e.g., "app", "app.kubernetes.io/name").
@@ -180,8 +181,8 @@ variable "k8s_log_exclusions" {
   EOT
   type = map(object({
     scope                  = string
+    cluster_name           = string
     namespace              = optional(string)
-    cluster_name           = optional(string)
     container_name         = optional(string)
     pod_label_key          = optional(string)
     pod_label_value        = optional(string)

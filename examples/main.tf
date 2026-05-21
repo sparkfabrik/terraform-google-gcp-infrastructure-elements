@@ -184,6 +184,7 @@ module "infrastructure_elements" {
     # Silence Typesense Raft recovery noise in stage (actively enabled)
     "typesense-stage-log-filter" = {
       scope                  = "namespace"
+      cluster_name           = "gke-test-1"
       namespace              = "typesense-clusters-stage"
       exclude_below_severity = "ERROR"
       enabled                = true
@@ -192,6 +193,7 @@ module "infrastructure_elements" {
     # Production filter created but disabled — activate during incidents
     "typesense-prod-log-filter" = {
       scope                  = "namespace"
+      cluster_name           = "gke-prod-1"
       namespace              = "typesense-clusters-main"
       exclude_below_severity = "ERROR"
       enabled                = false
@@ -208,6 +210,7 @@ module "infrastructure_elements" {
     # Example: namespace + container_name selector — target a specific container
     "typesense-stage-container-filter" = {
       scope                  = "namespace"
+      cluster_name           = "gke-test-1"
       namespace              = "typesense-clusters-stage"
       container_name         = "typesense"
       exclude_below_severity = "ERROR"
@@ -217,6 +220,7 @@ module "infrastructure_elements" {
     # Example: namespace + pod label selector — target pods by Kubernetes label
     "typesense-stage-pod-label-filter" = {
       scope                  = "namespace"
+      cluster_name           = "gke-test-1"
       namespace              = "typesense-clusters-stage"
       pod_label_key          = "app.kubernetes.io/name"
       pod_label_value        = "typesense"
