@@ -111,17 +111,17 @@ resource "google_logging_project_exclusion" "k8s_log_exclusions" {
     }
 
     precondition {
-      condition     = each.value.container_name == null || trimspace(each.value.container_name) != ""
+      condition     = try(trimspace(each.value.container_name) != "", true)
       error_message = "k8s_log_exclusions[\"${each.key}\"]: 'container_name' must be non-empty when set."
     }
 
     precondition {
-      condition     = each.value.pod_label_key == null || trimspace(each.value.pod_label_key) != ""
+      condition     = try(trimspace(each.value.pod_label_key) != "", true)
       error_message = "k8s_log_exclusions[\"${each.key}\"]: 'pod_label_key' must be non-empty when set."
     }
 
     precondition {
-      condition     = each.value.pod_label_value == null || trimspace(each.value.pod_label_value) != ""
+      condition     = try(trimspace(each.value.pod_label_value) != "", true)
       error_message = "k8s_log_exclusions[\"${each.key}\"]: 'pod_label_value' must be non-empty when set."
     }
   }
