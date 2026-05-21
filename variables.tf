@@ -119,10 +119,113 @@ EOT
 }
 
 variable "custom_exclusions" {
-  description = "Map of custom exclusion filters with their descriptions"
+  description = "Map of custom exclusion filters with their descriptions. The map key is used as the GCP exclusion name. Each value must include `filter` and `description`, and may optionally set `enabled` (defaults to `true`), which maps to `disabled = !enabled` on the GCP resource."
   type = map(object({
     filter      = string
     description = string
+    enabled     = optional(bool, true)
   }))
   default = {}
+
+  validation {
+    condition = length(setintersection(
+      toset(keys(var.custom_exclusions)),
+      toset(keys(var.k8s_log_exclusions))
+    )) == 0
+    error_message = "custom_exclusions keys must not overlap with k8s_log_exclusions keys because both map keys are used as GCP exclusion names and must be unique per project."
+  }
+
+  validation {
+    condition = length(setintersection(
+      toset(keys(var.custom_exclusions)),
+      toset([
+        "health-probe-exclusion",
+        "default-k8s-exclusion",
+        "gke-metadata-server-exclusion-sync-sandbox",
+        "fluentbit-gke-parse-time",
+        "fpm-exclusion",
+      ])
+    )) == 0
+    error_message = "custom_exclusions keys must not use module-reserved exclusion names: health-probe-exclusion, default-k8s-exclusion, gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion."
+  }
+}
+
+###########################
+# K8s Log Exclusions
+###########################
+variable "k8s_log_exclusions" {
+  description = <<-EOT
+    Map of structured Kubernetes log exclusions. The map key is used as the GCP exclusion name (must be unique per project).
+    Each entry generates a GCP log exclusion scoped to a Kubernetes namespace or GKE cluster, with optional
+    selectors to narrow to a specific container or pod label.
+
+    Fields:
+      scope                  - "namespace" to target a single k8s namespace, "cluster" to target all namespaces in a GKE cluster.
+                               WARNING: "cluster" scope silences logs for all workloads in the cluster.
+      namespace              - Required when scope = "namespace". The Kubernetes namespace to filter.
+      cluster_name           - Required when scope = "cluster". The GKE cluster name to filter.
+      container_name         - Optional. Narrow the exclusion to a specific container name
+                               (appends resource.labels.container_name="<value>" to the filter).
+      pod_label_key          - Optional. Kubernetes pod label key to filter on (e.g., "app", "app.kubernetes.io/name").
+                               Must be set together with pod_label_value.
+                               Generates: labels.k8s-pod/<key>="<value>".
+      pod_label_value        - Optional. Value for the pod label key. Must be set together with pod_label_key.
+      exclude_below_severity - Logs with severity strictly below this value are excluded. Defaults to "ERROR".
+                               Valid values: DEFAULT, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY.
+      enabled                - When false, the GCP exclusion is disabled (resource persists in state but does not filter logs).
+      description            - Human-readable description. Recommended: record activation date and review intent.
+
+    Reserved names (already used by this module): health-probe-exclusion, default-k8s-exclusion,
+    gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion.
+  EOT
+  type = map(object({
+    scope                  = string
+    namespace              = optional(string)
+    cluster_name           = optional(string)
+    container_name         = optional(string)
+    pod_label_key          = optional(string)
+    pod_label_value        = optional(string)
+    exclude_below_severity = optional(string, "ERROR")
+    enabled                = optional(bool, true)
+    description            = optional(string, "")
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for k, v in var.k8s_log_exclusions : contains(["namespace", "cluster"], v.scope)
+    ])
+    error_message = "Each k8s_log_exclusions entry's 'scope' must be either \"namespace\" or \"cluster\"."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.k8s_log_exclusions : contains([
+        "DEFAULT", "DEBUG", "INFO", "NOTICE", "WARNING",
+        "ERROR", "CRITICAL", "ALERT", "EMERGENCY"
+      ], v.exclude_below_severity)
+    ])
+    error_message = "Each k8s_log_exclusions entry's 'exclude_below_severity' must be one of: DEFAULT, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.k8s_log_exclusions : !contains([
+        "health-probe-exclusion",
+        "default-k8s-exclusion",
+        "gke-metadata-server-exclusion-sync-sandbox",
+        "fluentbit-gke-parse-time",
+        "fpm-exclusion",
+      ], k)
+    ])
+    error_message = "k8s_log_exclusions map keys must not use reserved names already managed by this module: health-probe-exclusion, default-k8s-exclusion, gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.k8s_log_exclusions :
+      (v.pod_label_key == null) == (v.pod_label_value == null)
+    ])
+    error_message = "Each k8s_log_exclusions entry must set both 'pod_label_key' and 'pod_label_value' together, or omit both."
+  }
 }

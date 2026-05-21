@@ -6,6 +6,31 @@ locals {
   # Combine all filters into one string
   probe_filter_expr = join(" OR ", concat(local.json_payload_filters, local.text_payload_filters))
   probe_filter      = "resource.type=\"k8s_container\" AND (${local.probe_filter_expr})"
+
+  # Generate GCP log filter expressions for k8s_log_exclusions entries.
+  # Builds a dynamic clause list: base scope + optional container_name + optional pod label + severity.
+  # trimspace(coalesce(..., "")) guards against null interpolation and trims whitespace-only values,
+  # keeping filter generation consistent with the trimspace() checks in the resource preconditions.
+  # Clauses are joined with AND to match established module style and avoid Cloud Logging filter ambiguity.
+  k8s_log_exclusion_filters = {
+    for k, v in var.k8s_log_exclusions : k => join(" AND\n", concat(
+      # Base: resource type + scope clause
+      ["resource.type=\"k8s_container\""],
+      v.scope == "namespace"
+      ? ["resource.labels.namespace_name=\"${trimspace(coalesce(v.namespace, ""))}\""]
+      : ["resource.labels.cluster_name=\"${trimspace(coalesce(v.cluster_name, ""))}\""],
+      # Optional: container name selector
+      v.container_name != null && trimspace(v.container_name) != ""
+      ? ["resource.labels.container_name=\"${trimspace(v.container_name)}\""]
+      : [],
+      # Optional: pod label selector
+      v.pod_label_key != null && v.pod_label_value != null
+      ? ["labels.k8s-pod/${trimspace(v.pod_label_key)}=\"${trimspace(v.pod_label_value)}\""]
+      : [],
+      # Severity threshold (always last)
+      ["severity<\"${v.exclude_below_severity}\""],
+    ))
+  }
 }
 
 resource "google_logging_project_exclusion" "probe_exclusion" {
@@ -51,4 +76,57 @@ resource "google_logging_project_exclusion" "fpm" {
   name        = "fpm-exclusion"
   description = "Exclude fpm logs"
   filter      = var.fpm
+}
+
+# Structured Kubernetes log exclusions. One resource per k8s_log_exclusions entry.
+# The resource persists in state even when enabled = false (disabled = true in GCP),
+# allowing toggle without destroy/recreate.
+resource "google_logging_project_exclusion" "k8s_log_exclusions" {
+  for_each = var.k8s_log_exclusions
+
+  project     = var.project_id
+  name        = each.key
+  description = each.value.description
+  filter      = local.k8s_log_exclusion_filters[each.key]
+  disabled    = !each.value.enabled
+
+  lifecycle {
+    precondition {
+      condition     = !(each.value.scope == "namespace" && (each.value.namespace == null || trimspace(each.value.namespace) == ""))
+      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'namespace' must be set to a non-empty string when scope is \"namespace\"."
+    }
+
+    precondition {
+      condition     = !(each.value.scope == "cluster" && (each.value.cluster_name == null || trimspace(each.value.cluster_name) == ""))
+      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'cluster_name' must be set to a non-empty string when scope is \"cluster\"."
+    }
+
+    precondition {
+      condition     = each.value.container_name == null || trimspace(each.value.container_name) != ""
+      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'container_name' must be non-empty when set."
+    }
+
+    precondition {
+      condition     = each.value.pod_label_key == null || trimspace(each.value.pod_label_key) != ""
+      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'pod_label_key' must be non-empty when set."
+    }
+
+    precondition {
+      condition     = each.value.pod_label_value == null || trimspace(each.value.pod_label_value) != ""
+      error_message = "k8s_log_exclusions[\"${each.key}\"]: 'pod_label_value' must be non-empty when set."
+    }
+  }
+}
+
+# Custom log exclusions with arbitrary GCP filter strings.
+# The map key is used as the GCP exclusion name.
+# The resource persists in state even when enabled = false (disabled = true in GCP).
+resource "google_logging_project_exclusion" "custom_exclusions" {
+  for_each = var.custom_exclusions
+
+  project     = var.project_id
+  name        = each.key
+  description = each.value.description
+  filter      = each.value.filter
+  disabled    = !each.value.enabled
 }
