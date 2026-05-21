@@ -127,6 +127,22 @@ resource "google_logging_project_exclusion" "k8s_log_exclusions" {
   }
 }
 
+# Cross-variable validation: ensure custom_exclusions and k8s_log_exclusions keys
+# don't overlap, since both map keys become GCP exclusion names (unique per project).
+# This cannot live inside a variable validation block (Terraform < 1.9 restriction),
+# so we use a terraform_data precondition which evaluates at plan time.
+resource "terraform_data" "validate_exclusion_keys" {
+  lifecycle {
+    precondition {
+      condition = length(setintersection(
+        toset(keys(var.custom_exclusions)),
+        toset(keys(var.k8s_log_exclusions))
+      )) == 0
+      error_message = "custom_exclusions keys must not overlap with k8s_log_exclusions keys because both map keys are used as GCP exclusion names and must be unique per project."
+    }
+  }
+}
+
 # Custom log exclusions with arbitrary GCP filter strings.
 # The map key is used as the GCP exclusion name.
 # The resource persists in state even when enabled = false (disabled = true in GCP).

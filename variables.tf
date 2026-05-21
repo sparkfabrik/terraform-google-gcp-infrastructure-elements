@@ -130,14 +130,6 @@ variable "custom_exclusions" {
   validation {
     condition = length(setintersection(
       toset(keys(var.custom_exclusions)),
-      toset(keys(var.k8s_log_exclusions))
-    )) == 0
-    error_message = "custom_exclusions keys must not overlap with k8s_log_exclusions keys because both map keys are used as GCP exclusion names and must be unique per project."
-  }
-
-  validation {
-    condition = length(setintersection(
-      toset(keys(var.custom_exclusions)),
       toset([
         "health-probe-exclusion",
         "default-k8s-exclusion",
