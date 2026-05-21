@@ -24,7 +24,7 @@ locals {
       ? ["resource.labels.namespace_name=\"${trimspace(coalesce(v.namespace, ""))}\""]
       : [],
       # Optional: container name selector
-      v.container_name != null && trimspace(v.container_name) != ""
+      v.container_name != null
       ? ["resource.labels.container_name=\"${trimspace(v.container_name)}\""]
       : [],
       # Optional: pod label selector
@@ -111,18 +111,34 @@ resource "google_logging_project_exclusion" "k8s_log_exclusions" {
     }
 
     precondition {
-      condition     = each.value.container_name == null || trimspace(each.value.container_name) != ""
+      condition     = try(trimspace(each.value.container_name) != "", true)
       error_message = "k8s_log_exclusions[\"${each.key}\"]: 'container_name' must be non-empty when set."
     }
 
     precondition {
-      condition     = each.value.pod_label_key == null || trimspace(each.value.pod_label_key) != ""
+      condition     = try(trimspace(each.value.pod_label_key) != "", true)
       error_message = "k8s_log_exclusions[\"${each.key}\"]: 'pod_label_key' must be non-empty when set."
     }
 
     precondition {
-      condition     = each.value.pod_label_value == null || trimspace(each.value.pod_label_value) != ""
+      condition     = try(trimspace(each.value.pod_label_value) != "", true)
       error_message = "k8s_log_exclusions[\"${each.key}\"]: 'pod_label_value' must be non-empty when set."
+    }
+  }
+}
+
+# Cross-variable validation: ensure custom_exclusions and k8s_log_exclusions keys
+# don't overlap, since both map keys become GCP exclusion names (unique per project).
+# This cannot live inside a variable validation block (Terraform < 1.9 restriction),
+# so we use a terraform_data precondition which evaluates at plan time.
+resource "terraform_data" "validate_exclusion_keys" {
+  lifecycle {
+    precondition {
+      condition = length(setintersection(
+        toset(keys(var.custom_exclusions)),
+        toset(keys(var.k8s_log_exclusions))
+      )) == 0
+      error_message = "custom_exclusions keys must not overlap with k8s_log_exclusions keys because both map keys are used as GCP exclusion names and must be unique per project."
     }
   }
 }
