@@ -24,7 +24,7 @@ locals {
       ? ["resource.labels.namespace_name=\"${trimspace(coalesce(v.namespace, ""))}\""]
       : [],
       # Optional: container name selector
-      v.container_name != null && trimspace(v.container_name) != ""
+      v.container_name != null
       ? ["resource.labels.container_name=\"${trimspace(v.container_name)}\""]
       : [],
       # Optional: pod label selector
