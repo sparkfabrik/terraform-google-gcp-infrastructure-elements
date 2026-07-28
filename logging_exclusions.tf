@@ -7,6 +7,17 @@ locals {
   probe_filter_expr = join(" OR ", concat(local.json_payload_filters, local.text_payload_filters))
   probe_filter      = "resource.type=\"k8s_container\" AND (${local.probe_filter_expr})"
 
+  # Filter for the opt-in k8s_node system-noise exclusion. logName requires the
+  # full project path, so the filter is built here instead of a variable default.
+  k8s_node_system_noise_log_names = join(" OR ", [
+    for log in var.k8s_node_system_noise_logs : "\"projects/${var.project_id}/logs/${log}\""
+  ])
+  k8s_node_system_noise_filter = <<-EOT
+    resource.type="k8s_node" AND
+    severity<${var.k8s_node_system_noise_exclude_below_severity} AND
+    logName=(${local.k8s_node_system_noise_log_names})
+  EOT
+
   # Generate GCP log filter expressions for k8s_log_exclusions entries.
   # Builds a dynamic clause list: base scope + optional container_name + optional pod label + severity.
   # trimspace(coalesce(..., "")) guards against null interpolation and trims whitespace-only values,
@@ -80,6 +91,20 @@ resource "google_logging_project_exclusion" "fpm" {
   name        = "fpm-exclusion"
   description = "Exclude fpm logs"
   filter      = var.fpm
+}
+
+# Opt-in exclusion for high-volume node-level system logs (kubelet, container
+# runtime, fluentbit, gcfs). These logs are written at severity DEFAULT in very
+# high volume and can dominate Cloud Logging ingestion cost on busy clusters.
+# Kubernetes events and node installation/configuration logs are not matched,
+# and entries at or above the configured severity are always ingested.
+resource "google_logging_project_exclusion" "k8s_node_system_noise" {
+  count = lookup(var.enable_exclusions, "k8s_node_system_noise", false) ? 1 : 0
+
+  project     = var.project_id
+  name        = "k8s-node-system-noise"
+  description = "Exclude sub-${var.k8s_node_system_noise_exclude_below_severity} node-level system logs (${join(", ", var.k8s_node_system_noise_logs)})"
+  filter      = local.k8s_node_system_noise_filter
 }
 
 # Structured Kubernetes log exclusions. One resource per k8s_log_exclusions entry.
