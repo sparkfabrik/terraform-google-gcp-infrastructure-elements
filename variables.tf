@@ -55,7 +55,7 @@ variable "ssl_modern_policy_description" {
 # Logging Exclusions
 ###########################
 variable "enable_exclusions" {
-  description = "Map of boolean flags to enable/disable individual exclusions"
+  description = "Map of boolean flags to enable/disable individual exclusions. `k8s_node_system_noise` is opt-in (defaults to false): it silences node-level system logs and should be enabled on development platforms only."
   type        = map(bool)
   default = {
     probe_exclusion                  = true
@@ -63,6 +63,38 @@ variable "enable_exclusions" {
     gke_metadata_server_sync_sandbox = true
     fluentbit_gke                    = true
     fpm                              = true
+    k8s_node_system_noise            = false
+  }
+}
+
+variable "k8s_node_system_noise_logs" {
+  description = "Log IDs of the k8s_node system logs excluded by the opt-in `k8s_node_system_noise` exclusion. These logs are typically written at severity DEFAULT in very high volume (kubelet alone can exceed 50M entries/week on a busy cluster) and drive Cloud Logging ingestion cost."
+  type        = list(string)
+  default = [
+    "kubelet",
+    "container-runtime",
+    "fluentbit",
+    "gcfs-snapshotter",
+    "gcfsd",
+  ]
+
+  validation {
+    condition     = length(var.k8s_node_system_noise_logs) > 0
+    error_message = "k8s_node_system_noise_logs must contain at least one log ID when the exclusion is enabled."
+  }
+}
+
+variable "k8s_node_system_noise_exclude_below_severity" {
+  description = "Entries of the k8s_node system logs strictly below this severity are excluded when `k8s_node_system_noise` is enabled. Entries at or above this severity are always ingested."
+  type        = string
+  default     = "WARNING"
+
+  validation {
+    condition = contains([
+      "DEFAULT", "DEBUG", "INFO", "NOTICE", "WARNING",
+      "ERROR", "CRITICAL", "ALERT", "EMERGENCY"
+    ], var.k8s_node_system_noise_exclude_below_severity)
+    error_message = "k8s_node_system_noise_exclude_below_severity must be one of: DEFAULT, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY."
   }
 }
 
@@ -136,9 +168,10 @@ variable "custom_exclusions" {
         "gke-metadata-server-exclusion-sync-sandbox",
         "fluentbit-gke-parse-time",
         "fpm-exclusion",
+        "k8s-node-system-noise",
       ])
     )) == 0
-    error_message = "custom_exclusions keys must not use module-reserved exclusion names: health-probe-exclusion, default-k8s-exclusion, gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion."
+    error_message = "custom_exclusions keys must not use module-reserved exclusion names: health-probe-exclusion, default-k8s-exclusion, gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion, k8s-node-system-noise."
   }
 }
 
@@ -169,7 +202,8 @@ variable "k8s_log_exclusions" {
       description            - Human-readable description. Recommended: record activation date and review intent.
 
     Reserved names (already used by this module): health-probe-exclusion, default-k8s-exclusion,
-    gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion.
+    gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion,
+    k8s-node-system-noise.
   EOT
   type = map(object({
     scope                  = string
@@ -209,9 +243,10 @@ variable "k8s_log_exclusions" {
         "gke-metadata-server-exclusion-sync-sandbox",
         "fluentbit-gke-parse-time",
         "fpm-exclusion",
+        "k8s-node-system-noise",
       ], k)
     ])
-    error_message = "k8s_log_exclusions map keys must not use reserved names already managed by this module: health-probe-exclusion, default-k8s-exclusion, gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion."
+    error_message = "k8s_log_exclusions map keys must not use reserved names already managed by this module: health-probe-exclusion, default-k8s-exclusion, gke-metadata-server-exclusion-sync-sandbox, fluentbit-gke-parse-time, fpm-exclusion, k8s-node-system-noise."
   }
 
   validation {
